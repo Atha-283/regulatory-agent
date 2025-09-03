@@ -1,0 +1,12 @@
+# Virtuelle Umgebung
+venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# MacOS Systemdateien
+.DS_Store
+
+# Logs
+*.log
