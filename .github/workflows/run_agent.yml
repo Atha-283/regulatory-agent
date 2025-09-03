@@ -25,11 +25,5 @@ jobs:
 
       - name: Agent ausführen
         env:
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        run: python agent.py > news_links.txt
-
-      - name: Artefakt hochladen
-        uses: actions/upload-artifact@v3
-        with:
-          name: news-links
-          path: news_links.txt
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}  # dein Secret für die Mail
+        run: python agen
