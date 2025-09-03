@@ -16,20 +16,19 @@ KEYWORDS = [
     "Kirchensteuer", "Quellensteuer", "Steuerbescheinigung"
 ]
 
-# Feed-URLs (Beispiele, ggf. anpassen)
+# Feed-URLs (Beispiele)
 FEEDS = {
     "Tagesschau": "https://www.tagesschau.de/xml/rss2",
     "BMF": "https://www.bundesfinanzministerium.de/Content/DE/RSS/ffrss.xml",
     "ESMA": "https://www.esma.europa.eu/rss.xml",
-    "BaFin": "https://www.bafin.de/DE/Service/TopNavigation/RSS/_function/rssnewsfeed.xml",
+    "BaFin": "https://www.bafin.de/DE/Service/TopNavigation/RSS/_function/rssnewsfeed.xml;jsessionid=99275CAABCF0006A08975A6DC113A690.internet951",
     "BZsT": "https://www.bundesfinanzministerium.de/SiteGlobals/Functions/RSSFeed/DE/Aktuelles/RSSAktuelles.xml",
     "BMF zu Steuern": "https://www.bundesfinanzministerium.de/SiteGlobals/Functions/RSSFeed/DE/Steuern/RSSSteuern.xml",
-    "BMF Investmetn": "https://www.bundesfinanzministerium.de/Web/DE/Themen/Steuern/Steuerarten/Investmentsteuer/investmentsteuer.html",
+    "BMF Investment": "https://www.bundesfinanzministerium.de/Web/DE/Themen/Steuern/Steuerarten/Investmentsteuer/investmentsteuer.html",
+    # Weitere URLs ...
 }
 
-# -------------------------------
-# Funktionen zum Laden / Speichern der gesehenen Links
-# -------------------------------
+# --- Funktionen zum Laden/Speichern ---
 def load_seen_links():
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r") as f:
@@ -40,9 +39,7 @@ def save_seen_links(links):
     with open(SEEN_FILE, "w") as f:
         json.dump(list(links), f)
 
-# -------------------------------
-# News-Feeds auslesen und filtern
-# -------------------------------
+# --- News abrufen und filtern ---
 def fetch_news_from_feed(url, seen_links):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "lxml-xml")
@@ -67,15 +64,10 @@ def filter_news(items):
         titel = item.title.text.lower()
         beschreibung = item.description.text.lower() if item.description else ""
         text = titel + " " + beschreibung
-        print(f"Überprüfe Artikel: {titel[:50]}...")
         if any(keyword.lower() in text for keyword in KEYWORDS):
             filtered.append(item)
-    print(f"Gefilterte Artikel: {len(filtered)}")
     return filtered
 
-# -------------------------------
-# Alle Feeds durchlaufen
-# -------------------------------
 def fetch_all_news():
     seen_links = load_seen_links()
     all_news = []
@@ -92,12 +84,10 @@ def fetch_all_news():
         except Exception as e:
             all_news.append(f"## Fehler bei Feed {name}: {e}")
 
-    return "\n".join(all_news) if all_news else "❌ Keine relevanten News gefunden.", seen_links, all_new_links
+    return "\n".join(all_news) if all_news else "❌ Keine relevanten News gefunden.", all_new_links
 
-# -------------------------------
-# OpenAI Zusammenfassung
-# -------------------------------
-openai.api_key = os.environ.get("OPENAI_API_KEY")  # sicherer Weg
+# --- OpenAI API ---
+openai.api_key = "DEIN_OPENAI_API_KEY"
 
 def summarize_news(text):
     prompt = f"Fasse den folgenden Text kurz zusammen und gib Handlungsempfehlungen für Investmentbesteuerung:\n\n{text}"
@@ -108,18 +98,13 @@ def summarize_news(text):
     )
     return response.choices[0].message.content
 
-# -------------------------------
-# E-Mail versenden
-# -------------------------------
+# --- E-Mail ---
 def send_mail(subject, body):
-    print("Bereite E-Mail vor …")
     msg = EmailMessage()
     msg["From"] = "chatzopoulou8@gmail.com"
     msg["To"] = "athanasia.chatzopoulou@gmx.de"
     msg["Subject"] = subject
     msg.set_content(body or "Kein Inhalt übermittelt")
-
-    print(f"🧾 Mailinhalt:\n{body}")
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
@@ -127,14 +112,12 @@ def send_mail(subject, body):
         server.send_message(msg)
     print("✅ Nachricht erfolgreich gesendet!")
 
-# -------------------------------
-# Hauptlogik
-# -------------------------------
+# --- Hauptlogik ---
 if __name__ == "__main__":
-    news, seen_links, all_new_links = fetch_all_news()
+    seen_links = load_seen_links()
+    news, all_new_links = fetch_all_news()
 
-    body = news  # Direkt die gefilterten Artikel senden – ohne Zusammenfassung
-    send_mail("🧠 Neue BaFin-News", body)
+    send_mail("🧠 Neue BaFin-News", news)
     print("Mail gesendet.")
 
     # Neue Links speichern
