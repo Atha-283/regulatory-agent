@@ -9,9 +9,6 @@ import os
 # Datei für gespeicherte Links
 SEEN_FILE = "seen_items.json"
 
-# initialisiere die Variable
-seen_links = set()
-
 # Deine Keywords
 KEYWORDS = ["Vorabpauschale","Investment","Fonds","Fond","ETC","ETFs", 
             "Abgeltungssteuer", "CSDR", "FATCA", "CRS", "AWV", 
@@ -27,6 +24,8 @@ FEEDS = {
     "BMF zu Steuern": "https://www.bundesfinanzministerium.de/SiteGlobals/Functions/RSSFeed/DE/Steuern/RSSSteuern.xml",
     "BMF Investment": "https://www.bundesfinanzministerium.de/Web/DE/Themen/Steuern/Steuerarten/Investmentsteuer/investmentsteuer.html",
 }
+
+# --- Hilfsfunktionen ---
 
 def load_seen_links():
     if os.path.exists(SEEN_FILE):
@@ -70,7 +69,7 @@ def fetch_news_from_feed(url, seen_links):
     return news, new_links
 
 def fetch_all_news():
-    global seen_links
+    """Sammelt alle News, filtert sie, aktualisiert die gespeicherten Links."""
     seen_links = load_seen_links()
     all_news = []
     all_new_links = set()
@@ -92,7 +91,8 @@ def fetch_all_news():
 
     return "\n".join(all_news) if all_news else "❌ Keine relevanten News gefunden."
 
-# OpenAI API
+# --- OpenAI API ---
+
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 def summarize_news(text):
@@ -104,7 +104,8 @@ def summarize_news(text):
     )
     return response.choices[0].message.content
 
-# E-Mail versenden
+# --- E-Mail versenden ---
+
 def send_mail(subject, body):
     print("Bereite E-Mail vor …")
     msg = EmailMessage()
@@ -119,9 +120,10 @@ def send_mail(subject, body):
         server.send_message(msg)
     print("✅ Nachricht erfolgreich gesendet!")
 
-# Hauptlogik
+# --- Hauptlogik ---
+
 if __name__ == "__main__":
-    news = fetch_all_news()
-    body = news  # Direkt die gefilterten Artikel senden – ohne Zusammenfassung
+    news = fetch_all_news()            # sammelt News und aktualisiert Links
+    body = news                         # ohne Zusammenfassung, direkt die gefilterten Artikel
     send_mail("🧠 Neue Regulatorik-News", body)
     print("Mail gesendet.")
