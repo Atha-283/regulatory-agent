@@ -3,9 +3,8 @@ requests==2.31.0
 beautifulsoup4==4.12.2
 lxml==4.9.3
 
-# Datenverarbeitung
-pandas==2.1.0
+# Datenverarbeitung (Python 3.8 kompatibel)
+pandas==1.5.3
 
-# Optional: Email-Versand, falls du smtplib nutzt, ist meist in Python Standardbibliothek
 # Optional: dotenv, falls du Umgebungsvariablen einliest
 python-dotenv==1.0.0
