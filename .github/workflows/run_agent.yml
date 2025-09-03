@@ -26,4 +26,4 @@ jobs:
       - name: Agent ausführen
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}  # dein Secret für die Mail
-        run: python agen
+        run: python agent.py
