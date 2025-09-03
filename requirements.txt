@@ -1,10 +1,4 @@
-# HTTP Requests und Webscraping
 requests==2.31.0
 beautifulsoup4==4.12.2
 lxml==4.9.3
-
-# Datenverarbeitung (Python 3.8 kompatibel)
-pandas==1.5.3
-
-# Optional: dotenv, falls du Umgebungsvariablen einliest
-python-dotenv==1.0.0
+pandas==2.0.3
