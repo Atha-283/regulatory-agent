@@ -6,40 +6,59 @@ import openai
 import json
 import os
 
+# -----------------------------
+# Konfiguration
+# -----------------------------
+
+# Globale Variable für bereits gesehene Links
+seen_links = set()
+
 # Datei für gespeicherte Links
 SEEN_FILE = "seen_items.json"
 
-# Deine Keywords
+# Keywords für Filterung
 KEYWORDS = [
     "Vorabpauschale","Investment","Fonds","Fond","ETC","ETFs",
     "Abgeltungssteuer", "CSDR", "FATCA", "CRS", "AWV",
     "Kirchensteuer", "Quellensteuer", "Steuerbescheinigung"
 ]
 
-# Feed-URLs (Beispiele)
+# RSS-Feeds
 FEEDS = {
     "Tagesschau": "https://www.tagesschau.de/xml/rss2",
     "BMF": "https://www.bundesfinanzministerium.de/Content/DE/RSS/ffrss.xml",
     "ESMA": "https://www.esma.europa.eu/rss.xml",
-    "BaFin": "https://www.bafin.de/DE/Service/TopNavigation/RSS/_function/rssnewsfeed.xml;jsessionid=99275CAABCF0006A08975A6DC113A690.internet951",
+    "BaFin": "https://www.bafin.de/DE/Service/TopNavigation/RSS/_function/rssnewsfeed.xml",
     "BZsT": "https://www.bundesfinanzministerium.de/SiteGlobals/Functions/RSSFeed/DE/Aktuelles/RSSAktuelles.xml",
     "BMF zu Steuern": "https://www.bundesfinanzministerium.de/SiteGlobals/Functions/RSSFeed/DE/Steuern/RSSSteuern.xml",
-    "BMF Investment": "https://www.bundesfinanzministerium.de/Web/DE/Themen/Steuern/Steuerarten/Investmentsteuer/investmentsteuer.html",
-    # Weitere URLs ...
+    "BMF Investmetn": "https://www.bundesfinanzministerium.de/Web/DE/Themen/Steuern/Steuerarten/Investmentsteuer/investmentsteuer.html",
 }
 
-# --- Funktionen zum Laden/Speichern ---
+# OpenAI API-Key
+openai.api_key = "DEIN_OPENAI_API_KEY"
+
+
+# -----------------------------
+# Funktionen für gespeicherte Links
+# -----------------------------
 def load_seen_links():
+    global seen_links
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r") as f:
-            return set(json.load(f))
-    return set()
+            seen_links = set(json.load(f))
+    else:
+        seen_links = set()
+    return seen_links
 
-def save_seen_links(links):
+def save_seen_links():
+    global seen_links
     with open(SEEN_FILE, "w") as f:
-        json.dump(list(links), f)
+        json.dump(list(seen_links), f)
 
-# --- News abrufen und filtern ---
+
+# -----------------------------
+# RSS-Feed Funktionen
+# -----------------------------
 def fetch_news_from_feed(url, seen_links):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "lxml-xml")
@@ -52,6 +71,7 @@ def fetch_news_from_feed(url, seen_links):
     for item in items:
         titel = item.title.text.strip()
         link = item.link.text.strip()
+
         if link not in seen_links:
             news.append(f"- {titel}\n  {link}")
             new_links.add(link)
@@ -69,9 +89,9 @@ def filter_news(items):
     return filtered
 
 def fetch_all_news():
-    seen_links = load_seen_links()
+    global seen_links
+    load_seen_links()
     all_news = []
-    all_new_links = set()
 
     for name, url in FEEDS.items():
         try:
@@ -80,15 +100,17 @@ def fetch_all_news():
                 all_news.append(f"## News von {name} ##")
                 all_news.extend(feed_news)
                 all_news.append("")  # Leerzeile
-                all_new_links.update(new_links)
+                seen_links.update(new_links)
         except Exception as e:
             all_news.append(f"## Fehler bei Feed {name}: {e}")
 
-    return "\n".join(all_news) if all_news else "❌ Keine relevanten News gefunden.", all_new_links
+    save_seen_links()
+    return "\n".join(all_news) if all_news else "❌ Keine relevanten News gefunden."
 
-# --- OpenAI API ---
-openai.api_key = "DEIN_OPENAI_API_KEY"
 
+# -----------------------------
+# OpenAI Zusammenfassung
+# -----------------------------
 def summarize_news(text):
     prompt = f"Fasse den folgenden Text kurz zusammen und gib Handlungsempfehlungen für Investmentbesteuerung:\n\n{text}"
     response = openai.ChatCompletion.create(
@@ -98,8 +120,12 @@ def summarize_news(text):
     )
     return response.choices[0].message.content
 
-# --- E-Mail ---
+
+# -----------------------------
+# E-Mail Versand
+# -----------------------------
 def send_mail(subject, body):
+    print("Bereite E-Mail vor …")
     msg = EmailMessage()
     msg["From"] = "chatzopoulou8@gmail.com"
     msg["To"] = "athanasia.chatzopoulou@gmx.de"
@@ -112,14 +138,17 @@ def send_mail(subject, body):
         server.send_message(msg)
     print("✅ Nachricht erfolgreich gesendet!")
 
-# --- Hauptlogik ---
+
+# -----------------------------
+# Hauptlogik
+# -----------------------------
 if __name__ == "__main__":
-    seen_links = load_seen_links()
-    news, all_new_links = fetch_all_news()
+    news = fetch_all_news()
 
-    send_mail("🧠 Neue BaFin-News", news)
+    # Optional: Zusammenfassung mit OpenAI
+    # summary = summarize_news(news)
+    # body = summary
+
+    body = news  # Direkt die gefilterten Artikel senden
+    send_mail("🧠 Neue Regulatorik-News", body)
     print("Mail gesendet.")
-
-    # Neue Links speichern
-    seen_links.update(all_new_links)
-    save_seen_links(seen_links)
